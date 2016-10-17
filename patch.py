@@ -24,35 +24,33 @@ def info(msg):
 def error(msg):
 	print(red + msg + default)
 
-def cmdtask(cmd):
-	global showprogress
-	global result
-	showprogress = True
-	result = commands.getstatusoutput(cmd)
-	showprogress = False
-def progress(msg):
-	global showprogress
-	global result
-	t = 1
-	while showprogress:
-		if t % 2 > 0 :
-			sys.stdout.write(msg + '[\]')
-		else:
-			sys.stdout.write(msg + '[/]')
-		sys.stdout.write('\r')
-		sys.stdout.flush()
-		t += 1
-		time.sleep(0.5)
-	if result[0] == 0:
-		sys.stdout.write(msg + '[' + green + '✔' + default +']\n')
-	else:
-		sys.stdout.write(msg + '[' + red + '✕' + default +']\n')
+class CommandThread (threading.Thread):
+    def __init__(self, command):
+        threading.Thread.__init__(self)
+	self.command = command
+        self.running = True
+    def run(self):
+        self.result = commands.getstatusoutput(self.command)
+        self.running = False
 
-def doinbackground(cmd, msg):
-	threading.Thread(target=cmdtask, args=(cmd,)).start()
-	progress(msg)
+def show_progress(message, thread):
+    t = 0
+    while thread.running:
+        sys.stdout.write(message + '[/]') if t % 2 == 0 else sys.stdout.write(message + '[\]')
+        sys.stdout.write('\r')
+        sys.stdout.flush()
+        t += 1
+        time.sleep(1)
+    if thread.result[0] == 0:
+        sys.stdout.write(message + '[' + green + '✔' + default + ']\n')
+    else:
+        sys.stdout.write(message + '[' + red + '✕' + default + ']\n')
+        error(thread.result[1])
+	exit()
 
-repo_url = ''
+def do_in_background(thread, message):
+    thread.start()
+    show_progress(message, thread)
 
 svn_username = ''
 svn_password = ''
@@ -71,7 +69,7 @@ svn_commit_command = 'svn commit --file '
 #SVN MESSAGE
 svn_msg = '模块：patch\n修改点：%s\n%s'
 
-print(green + '--------------------- MTK AUTO PATCH SCRIPT -------------------------' + default)
+print(green + '----------------------- MTK AUTO PATCH SCRIPT -----------------------' + default)
 
 # SVN project
 alps_dir = ''
@@ -126,7 +124,7 @@ if raw_input(yellow + 'Do you want to change the svn account?(yes/no): ' + defau
 #update code
 info('#update code')
 os.chdir(alps_dir)
-doinbackground(svn_update_command, '    --update    ')
+do_in_background(CommandThread(svn_update_command), '    --update    ')
 patches = [f for f in os.listdir(work_path) if os.path.isfile(work_path + '/' + f) and f.endswith('tar.gz')]
 patches.sort()
 if len(patches) > 0:
@@ -147,22 +145,13 @@ for patch in patches:
 	info('#file operation')
 	#begin unzip patch file
 	os.chdir(work_path)
-	doinbackground(tar_command + work_path + '/' + m_patch, '    --unzip     ')
-	if result[0]:
-		error(result[1])
-		break
+	do_in_background(CommandThread(tar_command + work_path + '/' + m_patch), '    --unzip     ')
 	#begin cover origin file)
-	doinbackground(cp_command + work_path + '/alps/* ' + alps_dir, '    --copy      ')
-	if result[0]:
-		error(red + result[1])
-		break
+	do_in_background(CommandThread(cp_command + work_path + '/alps/* ' + alps_dir), '    --copy      ')
 	#svn add
 	info('#svn operation')
 	os.chdir(alps_dir)
-	doinbackground(svn_add_command, '    --add       ')
-	if result[0]:
-		error(result[1])
-		break
+	do_in_background(CommandThread(svn_add_command), '    --add       ')
 	#generate svn log
 	patch_list = open(work_path + '/patch_list.txt','r')
 	svn_log = open(work_path + '/' + log_name,'w+')
@@ -171,17 +160,14 @@ for patch in patches:
 	patch_list.close()
 	svn_log.close()
 	#commit
-	doinbackground(svn_commit_command + work_path + '/' + log_name , '    --commit    ')
-	if result[0]:
-		error(result[1])
-		break
+	do_in_background(CommandThread(svn_commit_command + work_path + '/' + log_name), '    --commit    ')
 	#delete unzip files
 	info('#finished')
 	os.chdir(work_path)
-	doinbackground(rm_command + 'alps/ patch_list.txt ' + log_name, '    --rm cache  ')
+	do_in_background(CommandThread(rm_command + 'alps/ patch_list.txt ' + log_name), '    --rm cache  ')
 
 if 'yes' == raw_input(yellow+'MTK Patch Finished, want to delete the patch tar? (yes/no): '+default):
 	for patch in patches:
 		os.remove(work_path + '/' + patch)
 
-print(green+'------------------------- THANK YOU FOR USING -----------------------'+default)
+print(green + '------------------------ THANK YOU FOR USING ------------------------' + default)
