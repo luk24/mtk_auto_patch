@@ -76,9 +76,11 @@ alps_dir = ''
 svn_projects = []
 dirs = [dir for dir in os.listdir(work_path) if os.path.isdir(work_path + '/' + dir)]
 for dir in dirs:
-    for file in os.listdir(work_path + '/' + dir):
-        if file == '.svn':
-            svn_projects.append(dir)
+	files = os.listdir(work_path + '/' + dir)
+	if(len(files) > 2:
+	    for file in files:
+	        if file == '.svn':
+	            svn_projects.append(dir)
 if len(svn_projects) > 0:
     info('#found dirs')
     number = 0
