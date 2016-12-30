@@ -20,9 +20,9 @@ global result
 showprogress = False
 
 def info(msg):
-	print(highline + msg + default)
+    print(highline + msg + default)
 def error(msg):
-	print(red + msg + default)
+    print(red + msg + default)
 
 class CommandThread (threading.Thread):
     def __init__(self, command):
@@ -64,6 +64,7 @@ cp_command = 'cp -rvf '
 rm_command = 'rm -rvf '
 svn_update_command = 'svn update'
 svn_add_command = "svn st --no-ignore | awk '{if($1 == \"?\"){print $2}}' | xargs -r svn add"
+svn_delete = "svn delete"
 svn_commit_command = 'svn commit --file '
 
 #SVN MESSAGE
@@ -76,11 +77,11 @@ alps_dir = ''
 svn_projects = []
 dirs = [dir for dir in os.listdir(work_path) if os.path.isdir(work_path + '/' + dir)]
 for dir in dirs:
-	files = os.listdir(work_path + '/' + dir)
-	if(len(files) > 2:
-	    for file in files:
-	        if file == '.svn':
-	            svn_projects.append(dir)
+    files = os.listdir(work_path + '/' + dir)
+    if len(files) > 2:
+	for file in files:
+	    if file == '.svn':
+	        svn_projects.append(dir)
 if len(svn_projects) > 0:
     info('#found dirs')
     number = 0
@@ -130,46 +131,55 @@ do_in_background(CommandThread(svn_update_command), '    --update    ')
 patches = [f for f in os.listdir(work_path) if os.path.isfile(work_path + '/' + f) and f.endswith('tar.gz')]
 patches.sort()
 if len(patches) > 0:
-	info('#patch list')
-	for p in patches:
-		print('    ' + p)
-	if 'yes' != raw_input(yellow + 'Are you sure the patches\'s sequence is right, it is important (yes/no): ' + default):
-		exit()
-else:
-	error('Not found patches files, execute over!')
+    info('#patch list')
+    for p in patches:
+	print('    ' + p)
+    if 'yes' != raw_input(yellow + 'Are you sure the patches\'s sequence is right, it is important (yes/no): ' + default):
 	exit()
+else:
+    error('Not found patches files, execute over!')
+    exit()
 
 for patch in patches:
-	info('-------- ' + patch[patch.rfind('_')+1 : patch.rfind(')') : 1] + ' --------')
-	m_patch = patch
-	m_patch = m_patch.replace('(', '\(')
-	m_patch = m_patch.replace(')', '\)')
-	info('#file operation')
-	#begin unzip patch file
-	os.chdir(work_path)
-	do_in_background(CommandThread(tar_command + work_path + '/' + m_patch), '    --unzip     ')
-	#begin cover origin file)
-	do_in_background(CommandThread(cp_command + work_path + '/alps/* ' + alps_dir), '    --copy      ')
-	#svn add
-	info('#svn operation')
-	os.chdir(alps_dir)
-	do_in_background(CommandThread(svn_add_command), '    --add       ')
-	#generate svn log
-	patch_list = open(work_path + '/patch_list.txt','r')
-	svn_log = open(work_path + '/' + log_name,'w+')
-	commit_msg = svn_msg % (patch[0 : len(patch) - 7 : 1], patch_list.read())
-	svn_log.write(commit_msg)
-	patch_list.close()
-	svn_log.close()
-	#commit
-	do_in_background(CommandThread(svn_commit_command + work_path + '/' + log_name), '    --commit    ')
-	#delete unzip files
-	info('#finished')
-	os.chdir(work_path)
-	do_in_background(CommandThread(rm_command + 'alps/ patch_list.txt ' + log_name), '    --rm cache  ')
+    info('-------- ' + patch[patch.rfind('_')+1 : patch.rfind(')') : 1] + ' --------')
+    m_patch = patch
+    m_patch = m_patch.replace('(', '\(')
+    m_patch = m_patch.replace(')', '\)')
+    info('#file operation')
+    #begin unzip patch file
+    os.chdir(work_path)
+    do_in_background(CommandThread(tar_command + work_path + '/' + m_patch), '    --unzip     ')
+    #begin cover origin file)
+    do_in_background(CommandThread(cp_command + work_path + '/alps/* ' + alps_dir), '    --copy      ')
+    #svn add
+    info('#svn operation')
+    os.chdir(alps_dir)
+    do_in_background(CommandThread(svn_add_command), '    --add       ')
+    #generate svn log
+    patch_list = open(work_path + '/patch_list.txt','r')
+    svn_log = open(work_path + '/' + log_name,'w+')
+    commit_msg = svn_msg % (patch[0 : len(patch) - 7 : 1], patch_list.read())
+    svn_log.write(commit_msg)
+    patch_list.close()
+    svn_log.close()
+    #svn delete
+    patch_list = open(work_path + '/patch_list.txt','r')
+    delete_list = ''
+    for line in patch_list:
+        if line.startswith('delete '):
+            delete_list += line[6 : len(line) - 1]
+    patch_list.close()
+    if delete_list != '':
+        do_in_background(CommandThread(svn_delete + delete_list + '&& rm -rf' + delete_list), '    --delete    ')
+    #commit
+    do_in_background(CommandThread(svn_commit_command + work_path + '/' + log_name), '    --commit    ')
+    #delete unzip files
+    info('#finished')
+    os.chdir(work_path)
+    do_in_background(CommandThread(rm_command + 'alps/ patch_list.txt ' + log_name), '    --rm cache  ')
 
 if 'yes' == raw_input(yellow+'MTK Patch Finished, want to delete the patch tar? (yes/no): '+default):
-	for patch in patches:
-		os.remove(work_path + '/' + patch)
+    for patch in patches:
+        os.remove(work_path + '/' + patch)
 
 print(green + '------------------------ THANK YOU FOR USING ------------------------' + default)
