@@ -8,19 +8,15 @@ import threading
 SCRIPT_VERSION = '0.1'
 
 # text color
-highline = '\033[1m'
+highlight = '\033[1m'
 green = '\033[1;32m'
 red = '\033[1;31m'
 yellow = '\033[0;33m'
 default = '\033[0m'
 
-global showprogress
-global result
-showprogress = False
-
 
 def info(msg):
-    print(highline + msg + default)
+    print(highlight + msg + default)
 
 
 def error(msg):
@@ -43,6 +39,7 @@ class CommandThread(threading.Thread):
         threading.Thread.__init__(self)
         self.command = command
         self.running = True
+        self.result = ''
 
     def run(self):
         self.result = commands.getstatusoutput(self.command)
@@ -91,15 +88,14 @@ svn_msg = '模块：patch\n修改点：%s\n%s'
 print(green + '----------------------- MTK AUTO PATCH SCRIPT -----------------------' + default)
 
 # SVN project
-alps_dir = ''
 svn_projects = []
-dirs = [dir for dir in os.listdir(work_path) if os.path.isdir(work_path + '/' + dir)]
-for dir in dirs:
-    files = os.listdir(work_path + '/' + dir)
+dirs = [d for d in os.listdir(work_path) if os.path.isdir(work_path + '/' + d)]
+for d in dirs:
+    files = os.listdir(work_path + '/' + d)
     if len(files) > 2:
         for f in files:
             if f == '.svn':
-                svn_projects.append(dir)
+                svn_projects.append(d)
 if len(svn_projects) > 0:
     info('#found dirs')
     number = 0
