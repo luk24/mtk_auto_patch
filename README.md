@@ -10,21 +10,20 @@
 
 附上文件目录结构
 
---ALPS
-
-    +abi
-    +art
-    +bionic
-    +...
-    +frameworks
-    +...
-    -Makefile
-    
---patch.py
-
---ALPS_P1.tar.gz
-
---ALPS_p2.tar.gz
+```
+─┬─ ALPS-MP-XXXX-AUSXXXX
+ ├─ abi
+ ├─ art
+ ├─ bionic
+ ├─ ...
+ ├─ frameworks
+ ├─ ...
+ └─ Makefile
+─── patch.py
+─── ALPS_P1.tar.gz
+─── ALPS_p2.tar.gz
+─── ...
+```
 
 
 # enjoy it！
