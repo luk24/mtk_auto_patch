@@ -27,9 +27,9 @@ def compare(x, y):
     newx = x[x.rfind('P', 0, len(x)) + 1:x.rfind(')', 0, len(x))]
     newy = y[y.rfind('P', 0, len(y)) + 1:y.rfind(')', 0, len(y))]
     if newx < newy:
-        return 1
-    elif newx > newy]:
         return -1
+    elif newx > newy:
+        return 1
     else: 
         return 0
 
