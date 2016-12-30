@@ -23,6 +23,15 @@ def info(msg):
     print(highline + msg + default)
 def error(msg):
     print(red + msg + default)
+def compare(x, y):
+    newx = x[x.rfind('P', 0, len(x)) + 1:x.rfind(')', 0, len(x))]
+    newy = y[y.rfind('P', 0, len(y)) + 1:y.rfind(')', 0, len(y))]
+    if newx < newy:
+        return 1
+    elif newx > newy]:
+        return -1
+    else: 
+        return 0
 
 class CommandThread (threading.Thread):
     def __init__(self, command):
@@ -129,7 +138,7 @@ info('#update code')
 os.chdir(alps_dir)
 do_in_background(CommandThread(svn_update_command), '    --update    ')
 patches = [f for f in os.listdir(work_path) if os.path.isfile(work_path + '/' + f) and f.endswith('tar.gz')]
-patches.sort()
+patches.sort(compare)
 if len(patches) > 0:
     info('#patch list')
     for p in patches:
